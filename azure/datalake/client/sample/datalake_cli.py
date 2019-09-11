@@ -74,10 +74,30 @@ def update_group_owner_command(ctx, filesystem, path, owner):
 @cli.command("get_path_properties")
 @click.option('-f', '--filesystem', required=True, type=str, help="filesystem name")
 @click.option('-p', '--path', required=True, type=str, help="Path in datalake filesystem")
+@click.option('--decode-user-properties/--no-decode-user-properties', default=False)
 @click.pass_context
-def get_path_properties_command(ctx, filesystem, path):
+def get_path_properties_command(ctx, filesystem, path, decode_user_properties):
     """This script shows properties in the selected path"""
-    path_properties = ctx.obj['manager'].get_path_properties(filesystem, path)
+    path_properties = ctx.obj['manager'].get_path_properties(filesystem, path, decode_user_properties)
+    print(path_properties)
+
+@cli.command("get_path_user_properties")
+@click.option('-f', '--filesystem', required=True, type=str, help="filesystem name")
+@click.option('-p', '--path', required=True, type=str, help="Path in datalake filesystem")
+@click.option('--decode-user-properties/--no-decode-user-properties', default=False)
+@click.pass_context
+def get_path_user_properties_command(ctx, filesystem, path, decode_user_properties):
+    """This script shows properties in the selected path"""
+    path_properties = ctx.obj['manager'].get_path_user_properties(filesystem, path, decode_user_properties)
+    print(path_properties)
+
+@cli.command("get_path_system_properties")
+@click.option('-f', '--filesystem', required=True, type=str, help="filesystem name")
+@click.option('-p', '--path', required=True, type=str, help="Path in datalake filesystem")
+@click.pass_context
+def get_path_system_properties_command(ctx, filesystem, path):
+    """This script shows properties in the selected path"""
+    path_properties = ctx.obj['manager'].get_path_system_properties(filesystem, path)
     print(path_properties)
 
 @cli.command("get_path_acl")
