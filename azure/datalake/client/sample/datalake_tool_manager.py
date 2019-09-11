@@ -109,14 +109,14 @@ class DatalakeToolManager:
 
             if not iterate_in_results:
                 iterate_more = False
-                response_items.continuation_token = continuation_token
             elif not continuation_token:
                 iterate_more = False
             elif max_results:
                 iterate_more = (len(response_items.items) < max_results)
             else:
                 iterate_more = True
-        
+
+        response_items.continuation_token = continuation_token
         return response_items
 
     def create_folder(self, filesystem, folder):
@@ -208,7 +208,6 @@ class DatalakeToolManager:
         datalake_filepath = target_folder + "/" + file_name
 
         chunk_size = ManagerConstants.CHUNK_SIZE_DEFAULT
-        #chunk_size = 12 #for testing purpose
         
         position = 0
         with open(source_file_path, "rb") as f:
@@ -229,16 +228,7 @@ class DatalakeToolManager:
 
             self.client.path.update(PathUpdateAction.flush, filesystem, datalake_filepath, position=position);
 
-            # # using whole file approach
-            # # file_size = <>
-            # # with open(file_path, "rb") as f:
-            # #     manager.client.path.create(filesystem, datalake_filepath, PathResourceType.file);
-            # #     manager.client.path.update(PathUpdateAction.append, filesystem, datalake_filepath, position=position, content_length=file_size, request_body=f);
-            # #     manager.client.path.update(PathUpdateAction.flush, filesystem, datalake_filepath, position=file_size);
-
     def download_file(self, filesystem, source_file_path, target_file_path):
-        # var readStream = client.Path.Read(filesystem, dlFilePath);
-
         with open(target_file_path, "wb") as f:
             
             def user_callback(chunk, response):
