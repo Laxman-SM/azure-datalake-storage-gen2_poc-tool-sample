@@ -70,7 +70,7 @@ class DatalakeToolManager:
     def delete_filesystem(self, filesystem):
         self.client.filesystem.delete(filesystem)
 
-    def list_filesystems(self, prefix=None, include_acl:bool=False):
+    def list_filesystems(self, prefix=None, include_acl:bool=False, upn=None):
         filesystems_list = []
         list_response = self.client.filesystem.list(prefix=prefix, raw=True)
         for item in list_response:
@@ -78,7 +78,7 @@ class DatalakeToolManager:
             filesystems_dict['name'] = item.name
             filesystems_dict['last-modified'] = item.last_modified
             if include_acl:
-                filesystem_acl = self.get_path_acl(item.name)
+                filesystem_acl = self.get_path_acl(item.name, upn=upn)
                 filesystems_dict['acl'] = filesystem_acl
             filesystems_list.append(filesystems_dict)
         return filesystems_list
@@ -191,12 +191,12 @@ class DatalakeToolManager:
 
         return properties_dict
 
-    def get_path_acl(self, filesystem, path=None):
+    def get_path_acl(self, filesystem, path=None, upn=None):
         if path:
             filesystem_path = path
         else:
             filesystem_path = ''
-        get_properties_response = self.client.path.get_properties(filesystem, filesystem_path, PathGetPropertiesAction.get_access_control, raw=True)
+        get_properties_response = self.client.path.get_properties(filesystem, filesystem_path, PathGetPropertiesAction.get_access_control, raw=True, upn=upn)
         properties_acl = get_properties_response.headers['x-ms-acl']
         return properties_acl
 

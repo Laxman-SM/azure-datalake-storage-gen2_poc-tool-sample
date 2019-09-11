@@ -104,11 +104,12 @@ def get_path_system_properties_command(ctx, filesystem, path, upn):
 
 @cli.command("get_path_acl")
 @click.option('-f', '--filesystem', required=True, type=str, help="filesystem name")
-@click.option('-p', '--path', required=True, type=str, help="Path in datalake filesystem")
+@click.option('-p', '--path', required=False, type=str, help="Path in datalake filesystem")
+@click.option('--upn/--no-upn', default=False)
 @click.pass_context
-def get_path_acl_command(ctx, filesystem, path):
+def get_path_acl_command(ctx, filesystem, path, upn):
     """This script gets existing acl"""
-    properties_acl = ctx.obj['manager'].get_path_acl(filesystem, path)
+    properties_acl = ctx.obj['manager'].get_path_acl(filesystem, path, upn=upn)
     print(properties_acl)
 
 @cli.command("update_path_acl")
@@ -132,10 +133,11 @@ def upload_file_command(ctx, filesystem, source_file, target_directory):
 @cli.command("list_filesystems")
 @click.option('--prefix', required=False, type=str, help="Filters results to filesystems within the specified prefix")
 @click.option('--include-acl/--no-include-acl', default=False)
+@click.option('--upn/--no-upn', default=False)
 @click.pass_context
-def list_filesystems_command(ctx, prefix, include_acl):
+def list_filesystems_command(ctx, prefix, include_acl, upn):
     """This script gets list of existing filesystems"""
-    items = ctx.obj['manager'].list_filesystems(prefix=prefix, include_acl=include_acl)
+    items = ctx.obj['manager'].list_filesystems(prefix=prefix, include_acl=include_acl, upn=upn)
     print(items)
 
 @cli.command("list_path_items")
