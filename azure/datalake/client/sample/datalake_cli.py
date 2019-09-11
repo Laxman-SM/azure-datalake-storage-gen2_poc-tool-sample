@@ -75,10 +75,11 @@ def update_group_owner_command(ctx, filesystem, path, owner):
 @click.option('-f', '--filesystem', required=True, type=str, help="filesystem name")
 @click.option('-p', '--path', required=True, type=str, help="Path in datalake filesystem")
 @click.option('--decode-user-properties/--no-decode-user-properties', default=False)
+@click.option('--upn/--no-upn', default=False)
 @click.pass_context
-def get_path_properties_command(ctx, filesystem, path, decode_user_properties):
+def get_path_properties_command(ctx, filesystem, path, decode_user_properties, upn):
     """This script shows properties in the selected path"""
-    path_properties = ctx.obj['manager'].get_path_properties(filesystem, path, decode_user_properties)
+    path_properties = ctx.obj['manager'].get_path_properties(filesystem, path, decode_user_properties=decode_user_properties, upn=upn)
     print(path_properties)
 
 @cli.command("get_path_user_properties")
@@ -88,16 +89,17 @@ def get_path_properties_command(ctx, filesystem, path, decode_user_properties):
 @click.pass_context
 def get_path_user_properties_command(ctx, filesystem, path, decode_user_properties):
     """This script shows properties in the selected path"""
-    path_properties = ctx.obj['manager'].get_path_user_properties(filesystem, path, decode_user_properties)
+    path_properties = ctx.obj['manager'].get_path_user_properties(filesystem, path, decode_user_properties=decode_user_properties)
     print(path_properties)
 
 @cli.command("get_path_system_properties")
 @click.option('-f', '--filesystem', required=True, type=str, help="filesystem name")
 @click.option('-p', '--path', required=True, type=str, help="Path in datalake filesystem")
+@click.option('--upn/--no-upn', default=False)
 @click.pass_context
-def get_path_system_properties_command(ctx, filesystem, path):
+def get_path_system_properties_command(ctx, filesystem, path, upn):
     """This script shows properties in the selected path"""
-    path_properties = ctx.obj['manager'].get_path_system_properties(filesystem, path)
+    path_properties = ctx.obj['manager'].get_path_system_properties(filesystem, path, upn=upn)
     print(path_properties)
 
 @cli.command("get_path_acl")
@@ -126,3 +128,26 @@ def update_path_acl_command(ctx, filesystem, path, acl):
 def upload_file_command(ctx, filesystem, source_file, target_directory):
     """This script updates existing acl"""
     ctx.obj['manager'].upload_file(filesystem, source_file, target_directory)
+
+@cli.command("list_filesystems")
+@click.option('--prefix', required=False, type=str, help="Filters results to filesystems within the specified prefix")
+@click.option('--include-acl/--no-include-acl', default=False)
+@click.pass_context
+def list_filesystems_command(ctx, prefix, include_acl):
+    """This script gets list of existing filesystems"""
+    items = ctx.obj['manager'].list_filesystems(prefix=prefix, include_acl=include_acl)
+    print(items)
+
+@cli.command("list_path_items")
+@click.option('-f', '--filesystem', required=True, type=str, help="filesystem name")
+@click.option('-p', '--path', required=False, type=str, help="Path for a directory in datalake filesystem")
+@click.option('--max-results', required=False, type=int, help="Limits number of results")
+@click.option('--recursive/--no-recursive', default=False)
+@click.option('--iterate-in-results/--no-iterate-in-results', default=False)
+@click.option('--upn/--no-upn', default=False)
+@click.pass_context
+def list_path_items_command(ctx, filesystem, path, recursive, iterate_in_results, max_results, upn):
+    """This script list items in a directory"""
+    items = ctx.obj['manager'].list_path_items(
+        filesystem, path=path, recursive=recursive, iterate_in_results=iterate_in_results, max_results=max_results, upn=upn)
+    print(items)

@@ -45,6 +45,20 @@ class DatalakeClientFactory:
         return DatalakeClientFactory._create_client(credential, account_name)
 
 
+class ListItemsResponse(object):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.items = []
+        self.continuation_token = None
+
+    def __str__(self):
+        items_str = ', '.join(map(str, self.items))
+        result_to_format = "'continuation_token': '{token}', 'items': [{items_str}]"
+        result = "{" + result_to_format.format(token=self.continuation_token, items_str=items_str) + "}"
+
+        return result
+
+
 class DatalakeToolManager:
     def __init__(self, client, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -56,9 +70,54 @@ class DatalakeToolManager:
     def delete_filesystem(self, filesystem):
         self.client.filesystem.delete(filesystem)
 
-    def list_filesystem(self, filesystem):
-        #TODO
-        pass
+    def list_filesystems(self, prefix=None, include_acl:bool=False):
+        filesystems_list = []
+        list_response = self.client.filesystem.list(prefix=prefix, raw=True)
+        for item in list_response:
+            filesystems_dict = {}
+            filesystems_dict['name'] = item.name
+            filesystems_dict['last-modified'] = item.last_modified
+            if include_acl:
+                filesystem_acl = self.get_path_acl(item.name)
+                filesystems_dict['acl'] = filesystem_acl
+            filesystems_list.append(filesystems_dict)
+        return filesystems_list
+
+    def list_path_items(self, filesystem, path:str=None, recursive:bool=False, iterate_in_results:bool=False, max_results=None, upn=None):
+        if path:
+            filesystem_path = path
+        else:
+            filesystem_path = ''
+
+        response_items = ListItemsResponse()
+
+        iterate_more = True
+        continuation_token = None
+        while iterate_more:
+            if continuation_token:
+                list_response = self.client.path.list(recursive=recursive, filesystem=filesystem, directory=filesystem_path, max_results=max_results, upn=upn, continuation=continuation_token)
+            else:
+                list_response = self.client.path.list(recursive=recursive, filesystem=filesystem, directory=filesystem_path, max_results=max_results, upn=upn)
+            
+            for item in list_response:
+                response_items.items.append(item)
+
+            if 'x-ms-continuation' in list_response.raw.response.headers:
+                continuation_token = list_response.raw.response.headers['x-ms-continuation']
+            else:
+                continuation_token = None
+
+            if not iterate_in_results:
+                iterate_more = False
+                response_items.continuation_token = continuation_token
+            elif not continuation_token:
+                iterate_more = False
+            elif max_results:
+                iterate_more = (len(response_items.items) < max_results)
+            else:
+                iterate_more = True
+        
+        return response_items
 
     def create_folder(self, filesystem, folder):
         """
@@ -68,11 +127,6 @@ class DatalakeToolManager:
         :type folder: str
         """
         self.client.path.create(filesystem, folder, PathResourceType.directory)
-
-    def get_path_acl(self, filesystem, folder):
-        properties = self.client.path.get_properties(filesystem, folder, PathGetPropertiesAction.get_access_control, raw=True)
-        properties_acl = properties.headers['x-ms-acl']
-        return properties_acl
 
     def update_owner(self, filesystem, path, new_owner):
         self.client.path.update(PathUpdateAction.set_access_control, filesystem, path, x_ms_owner=new_owner)
@@ -119,14 +173,14 @@ class DatalakeToolManager:
 
         return system_properties_dict
 
-    def get_path_system_properties(self, filesystem, path, decode_user_properties:bool=False):
-        get_properties_response = self.client.path.get_properties(filesystem, path, action=None, raw=True)
+    def get_path_system_properties(self, filesystem, path, upn=None):
+        get_properties_response = self.client.path.get_properties(filesystem, path, action=None, raw=True, upn=upn)
         system_properties_dict = self._build_system_properties_dict(filesystem, path, get_properties_response)
 
         return system_properties_dict
 
-    def get_path_properties(self, filesystem, path, decode_user_properties:bool=False):
-        get_properties_response = self.client.path.get_properties(filesystem, path, action=None, raw=True)
+    def get_path_properties(self, filesystem, path, decode_user_properties:bool=False, upn=None):
+        get_properties_response = self.client.path.get_properties(filesystem, path, action=None, raw=True, upn=upn)
         properties_dict = {}
 
         user_properties_dict = self._build_user_properties_dict(filesystem, path, get_properties_response, decode_user_properties)
@@ -137,9 +191,13 @@ class DatalakeToolManager:
 
         return properties_dict
 
-    def get_path_acl(self, filesystem, path):
-        access_properties = self.client.path.get_properties(filesystem, path, PathGetPropertiesAction.get_access_control, raw=True)
-        properties_acl = access_properties.headers['x-ms-acl']
+    def get_path_acl(self, filesystem, path=None):
+        if path:
+            filesystem_path = path
+        else:
+            filesystem_path = ''
+        get_properties_response = self.client.path.get_properties(filesystem, filesystem_path, PathGetPropertiesAction.get_access_control, raw=True)
+        properties_acl = get_properties_response.headers['x-ms-acl']
         return properties_acl
 
     def update_path_acl(self, filesystem, path, new_acl):
